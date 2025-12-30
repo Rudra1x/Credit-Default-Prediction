@@ -1,52 +1,48 @@
 """
 Inference Module
 Explainable Credit Default Prediction System
-
-Responsibilities:
-- Load production model from MLflow
-- Validate input features
-- Generate predictions & business decisions
 """
 
 import mlflow
 import pandas as pd
 from typing import Dict, List
+from mlflow.tracking import MlflowClient
 
-# Config
+# Configuration
 MODEL_NAME = "CreditRiskLightGBM"
-MODEL_STAGE = "None"  # Later: "Staging" or "Production"
+MODEL_URI = f"models:/{MODEL_NAME}/latest"
 DEFAULT_THRESHOLD = 0.5
 
-# Predictor Class
+
 class CreditRiskPredictor:
     def __init__(self, threshold: float = DEFAULT_THRESHOLD):
         self.threshold = threshold
         self.model = self._load_model()
         self.features = self._load_features()
 
+    # Model Loading
     def _load_model(self):
-        """
-        Load model from MLflow Model Registry
-        """
-        model_uri = f"models:/{MODEL_NAME}/{MODEL_STAGE}"
-        print(f" Loading model from MLflow: {model_uri}")
-        return mlflow.pyfunc.load_model(model_uri)
+        print(f"📦 Loading model from MLflow: {MODEL_URI}")
+        return mlflow.pyfunc.load_model(MODEL_URI)
 
     def _load_features(self) -> List[str]:
-        """
-        Load feature schema used during training
-        """
-        local_path = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"models:/{MODEL_NAME}/{MODEL_STAGE}/features.txt"
-        )
-        with open(local_path, "r") as f:
-            features = [line.strip() for line in f.readlines()]
-        return features
+        client = MlflowClient()
 
+        versions = client.get_latest_versions(MODEL_NAME)
+        if not versions:
+            raise RuntimeError("No registered model versions found")
+
+        run_id = versions[0].run_id
+        run = client.get_run(run_id)
+
+        features = run.data.params.get("features")
+        if features is None:
+            raise RuntimeError("Feature schema missing in MLflow params")
+
+        return features.split(",")
+
+    # Prediction
     def _prepare_input(self, input_data: Dict) -> pd.DataFrame:
-        """
-        Convert raw input dict into model-ready DataFrame
-        """
         df = pd.DataFrame([input_data])
 
         missing = set(self.features) - set(df.columns)
@@ -56,16 +52,13 @@ class CreditRiskPredictor:
         return df[self.features]
 
     def predict(self, input_data: Dict) -> Dict:
-        """
-        Generate prediction and business decision
-        """
         X = self._prepare_input(input_data)
 
-        probability = self.model.predict(X)[0]
-        decision = "APPROVED" if probability < self.threshold else "REJECTED"
+        prob = float(self.model.predict(X)[0])
+        decision = "APPROVED" if prob < self.threshold else "REJECTED"
 
         return {
-            "default_probability": round(float(probability), 4),
-            "risk_label": "HIGH_RISK" if probability >= self.threshold else "LOW_RISK",
-            "decision": decision
+            "default_probability": round(prob, 4),
+            "risk_label": "HIGH_RISK" if prob >= self.threshold else "LOW_RISK",
+            "decision": decision,
         }

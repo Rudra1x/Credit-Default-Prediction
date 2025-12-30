@@ -1,17 +1,13 @@
 """
 Model Training Pipeline
 Explainable Credit Default Prediction System
-
-- Trains LightGBM model
-- Logs metrics and artifacts to MLflow
-- Saves model for production inference
 """
 
 import os
-import mlflow
-import mlflow.lightgbm
 import pandas as pd
 import lightgbm as lgb
+import mlflow
+import mlflow.lightgbm
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
@@ -21,12 +17,13 @@ from sklearn.metrics import (
     recall_score
 )
 
-# Config
+# Configuration
 DATA_PATH = "data/processed/credit_data.csv"
 TARGET_COL = "default"
 EXPERIMENT_NAME = "credit-risk-explainable-model"
-
+MODEL_NAME = "CreditRiskLightGBM"
 RANDOM_STATE = 42
+
 
 # Utility Functions
 def load_data(path: str) -> pd.DataFrame:
@@ -34,25 +31,31 @@ def load_data(path: str) -> pd.DataFrame:
         raise FileNotFoundError(f"Dataset not found at {path}")
     return pd.read_csv(path)
 
+
 def split_data(df: pd.DataFrame):
     X = df.drop(columns=[TARGET_COL])
     y = df[TARGET_COL]
 
     return train_test_split(
-        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
+        X,
+        y,
+        test_size=0.2,
+        stratify=y,
+        random_state=RANDOM_STATE,
     )
+
 
 def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
 
-    metrics = {
+    return {
         "roc_auc": roc_auc_score(y_test, y_prob),
         "accuracy": accuracy_score(y_test, y_pred),
         "precision": precision_score(y_test, y_pred),
         "recall": recall_score(y_test, y_pred),
     }
-    return metrics
+
 
 # Training Pipeline
 def train():
@@ -73,7 +76,8 @@ def train():
             max_depth=6,
             subsample=0.8,
             colsample_bytree=0.8,
-            random_state=RANDOM_STATE
+            random_state=RANDOM_STATE,
+            verbosity=-1,
         )
 
         model.fit(X_train, y_train)
@@ -81,27 +85,25 @@ def train():
         print("Evaluating model...")
         metrics = evaluate_model(model, X_test, y_test)
 
-        for name, value in metrics.items():
-            mlflow.log_metric(name, value)
+        for k, v in metrics.items():
+            mlflow.log_metric(k, v)
 
-        print("Logging model to MLflow...")
+        # --------------------------------------------------
+        # CRITICAL: Log feature schema as MLflow metadata
+        # --------------------------------------------------
+        feature_list = list(X_train.columns)
+        mlflow.log_param("features", ",".join(feature_list))
+
+        print("Logging model to MLflow registry...")
         mlflow.lightgbm.log_model(
             model,
             artifact_path="model",
-            registered_model_name="CreditRiskLightGBM"
+            registered_model_name=MODEL_NAME,
         )
 
-        # Save feature list (used later in inference & explainability)
-        feature_path = "models/features.txt"
-        os.makedirs("models", exist_ok=True)
-        with open(feature_path, "w") as f:
-            for col in X_train.columns:
-                f.write(f"{col}\n")
+        print("Training complete")
+        print("Metrics:", metrics)
 
-        mlflow.log_artifact(feature_path)
-
-        print("Training completed successfully!")
-        print("Logged Metrics:", metrics)
 
 if __name__ == "__main__":
     train()
