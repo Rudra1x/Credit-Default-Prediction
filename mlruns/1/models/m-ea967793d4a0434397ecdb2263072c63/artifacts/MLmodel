@@ -1,0 +1,22 @@
+artifact_path: file:///D:/QUANTUM COMPUTING/Industry Projects/Data Analysis and Data
+  Science/Credit-Default-Prediction/mlruns/1/models/m-ea967793d4a0434397ecdb2263072c63/artifacts
+flavors:
+  lightgbm:
+    code: null
+    data: model.pkl
+    lgb_version: 4.6.0
+    model_class: lightgbm.sklearn.LGBMClassifier
+  python_function:
+    data: model.pkl
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.lightgbm
+    python_version: 3.10.19
+mlflow_version: 3.7.0
+model_id: m-ea967793d4a0434397ecdb2263072c63
+model_size_bytes: 989174
+model_uuid: m-ea967793d4a0434397ecdb2263072c63
+prompts: null
+run_id: d1fb3c28d4a04376b69ecd0edadeee2d
+utc_time_created: '2025-12-30 10:17:19.024446'
