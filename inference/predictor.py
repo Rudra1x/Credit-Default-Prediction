@@ -44,7 +44,8 @@ class CreditRiskPredictor:
     # Prediction
     def _prepare_input(self, input_data: Dict) -> pd.DataFrame:
         df = pd.DataFrame([input_data])
-
+        # Drop any extra fields not used by the model (e.g., id)
+        df = df[[c for c in df.columns if c in self.features]]
         missing = set(self.features) - set(df.columns)
         if missing:
             raise ValueError(f"Missing required features: {missing}")
