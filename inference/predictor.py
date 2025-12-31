@@ -22,7 +22,7 @@ class CreditRiskPredictor:
 
     # Model Loading
     def _load_model(self):
-        print(f"📦 Loading model from MLflow: {MODEL_URI}")
+        print(f" Loading model from MLflow: {MODEL_URI}")
         return mlflow.pyfunc.load_model(MODEL_URI)
 
     def _load_features(self) -> List[str]:

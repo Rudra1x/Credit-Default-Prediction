@@ -88,9 +88,7 @@ def train():
         for k, v in metrics.items():
             mlflow.log_metric(k, v)
 
-        # --------------------------------------------------
         # CRITICAL: Log feature schema as MLflow metadata
-        # --------------------------------------------------
         feature_list = list(X_train.columns)
         mlflow.log_param("features", ",".join(feature_list))
 
