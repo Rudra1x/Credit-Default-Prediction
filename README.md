@@ -39,4 +39,4 @@ Bias mitigation strategies were tested and documented.
 This system is intended for educational and demonstration purposes. It should not be used as a standalone decision-maker in real-world lending without additional validation and oversight.
 
 ## Author
-Built by a Data Scientist / MLOps practitioner focusing on responsible and explainable AI systems.
+Built by a Rudraksh Sharma focusing on responsible and explainable AI systems.
