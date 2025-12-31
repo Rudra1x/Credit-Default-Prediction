@@ -52,3 +52,7 @@ class ModelInfoResponse(BaseModel):
     model_name: str
     model_version: str
     threshold: float
+
+class ExplainResponse(BaseModel):
+    top_contributing_factors: list
+    counterfactual_suggestions: list
